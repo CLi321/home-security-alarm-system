@@ -1,0 +1,47 @@
+/******************************************************************************/
+#if 0
+#include "main.h"
+ 
+
+/**
+  * @brief  Ö÷º¯Êý
+  * @param  ÎÞ
+  * @retval ÎÞ
+  */
+int main(void)
+{
+
+		Init_myself();
+
+    while(1)
+    {
+			
+				GET_Data_Desired_myself();	
+				IWDG_Feed();//Î¹¹·
+			
+				GET_Data_SENSOR_myself();		
+				IWDG_Feed();//Î¹¹·
+	
+				GET_Data_ALARM_myself();		
+				IWDG_Feed();//Î¹¹·
+			
+				ALARM_Handle_myself();
+				IWDG_Feed();//Î¹¹·
+						
+				printf_myself();		
+				OSD_myself();	
+				IWDG_Feed();//Î¹¹·
+				
+				deal_with();
+				POST_Data_myself();
+				IWDG_Feed();//Î¹¹·
+
+			
+				delay_s(3);
+				IWDG_Feed();//Î¹¹·
+//				OLED_CLS();	
+    }
+}
+
+#endif
+/*********************************************END OF FILE**********************/

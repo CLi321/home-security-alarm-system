@@ -1,0 +1,218 @@
+/**
+  *********************************************************************
+  * @file    main.c
+  * @author  fire
+  * @version V1.0
+  * @date    2018-xx-xx
+  * @brief   RT-Thread 3.0 + STM32 工程模版
+  *********************************************************************
+  * @attention
+  *
+  * 实验平台:野火 F103-指南者 STM32 开发板
+  * 论坛    :http://www.firebbs.cn
+  * 淘宝    :https://fire-stm32.taobao.com
+  *
+  **********************************************************************
+  */
+
+/*
+*************************************************************************
+*                             包含的头文件
+*************************************************************************
+*/
+#include "board.h"
+#include "rtthread.h"
+
+
+/*
+*************************************************************************
+*                               变量
+*************************************************************************
+*/
+
+
+/*
+* 程序清单：信号量用于任务同步
+*/
+
+/* 指向线程控制块的指针 *//* 定义线程控制块 */
+static rt_thread_t 		ALARM_thread 		  		   = RT_NULL;
+static rt_thread_t 		SENSOR_thread 		       = RT_NULL;
+static rt_thread_t 		Interactive_thread 		   = RT_NULL;
+
+
+
+///* 定义信号量控制块 */
+//struct rt_semaphore sem;
+
+/* 定义信号量控制块 */
+rt_sem_t 	ALARM_sem 					= RT_NULL;
+rt_sem_t 	SENSOR_sem 					= RT_NULL;
+rt_sem_t 	Interactive_sem 		= RT_NULL;
+
+uint32_t time_rec = 0; // ms 计时变量
+
+/*
+*************************************************************************
+*                             函数声明
+*************************************************************************
+*/
+static void ALARM_thread_entry(void* parameter);
+static void SENSOR_thread_entry(void* parameter);
+static void Interactive_thread_entry(void* parameter);
+
+
+
+/*
+*************************************************************************
+*                             main 函数
+*************************************************************************
+*/
+/**
+  * @brief  主函数
+  * @param  无
+  * @retval 无
+  */
+int main(void)
+{
+    /*
+     * 开发板硬件初始化，RTT系统初始化已经在main函数之前完成，
+     * 即在component.c文件中的rtthread_startup()函数中完成了。
+     * 所以在main函数中，只需要创建线程和启动线程即可。
+     */
+
+    /**************************************************************************/
+
+    /* 创建一个信号量 */
+    ALARM_sem = rt_sem_create("ALARM_sem",		              /* 信号量名字 */
+                              0,     								 			  /* 信号量初始值0 */
+                              RT_IPC_FLAG_FIFO); 		 			  /* 信号量模式 FIFO(0x00)*/
+    if (ALARM_sem != RT_NULL)
+        rt_kprintf("信号量创建成功！\n\n");
+
+    /**************************************************************************/
+
+    /* 创建一个信号量 */
+    SENSOR_sem = rt_sem_create("SENSOR_sem",						    /* 信号量名字 */
+                               0,     									    /* 信号量初始值0 */
+                               RT_IPC_FLAG_FIFO); 				  /* 信号量模式 FIFO(0x00)*/
+    if (SENSOR_sem != RT_NULL)
+        rt_kprintf("信号量创建成功！\n\n");
+
+    /**************************************************************************/
+
+    /* 创建一个信号量 */
+    Interactive_sem = rt_sem_create("Interactive_sem",    	/* 信号量名字 */
+                                    0,    								  /* 信号量初始值0 */
+                                    RT_IPC_FLAG_FIFO); 		  /* 信号量模式 FIFO(0x00)*/
+    if (Interactive_sem != RT_NULL)
+        rt_kprintf("信号量创建成功！\n\n");
+
+    /**************************************************************************/
+    /**************************************************************************/
+
+    /* 创建线程1 */
+    ALARM_thread =                          	 				 /* 线程控制块指针 */
+        rt_thread_create( "ALARM",            				 /* 线程名字 */
+                          ALARM_thread_entry,   			 /* 线程入口函数 */
+                          RT_NULL,             				 /* 线程入口函数参数 */
+                          512,                 				 /* 线程栈大小 */
+                          4,                  				 /* 线程的优先级 */
+                          20);                				 /* 线程时间片 */
+
+    /* 启动线程，开启调度 */
+    if (ALARM_thread != RT_NULL)
+        rt_thread_startup(ALARM_thread);
+
+    /**************************************************************************/
+
+    /* 创建线程2 */
+    SENSOR_thread =                        					   /* 线程控制块指针 */
+        rt_thread_create( "SENSOR",             			 /* 线程名字 */
+                          SENSOR_thread_entry,  			 /* 线程入口函数 */
+                          RT_NULL,             				 /* 线程入口函数参数 */
+                          512,                				 /* 线程栈大小 */
+                          5,                  				 /* 线程的优先级 */
+                          20);                 				 /* 线程时间片 */
+
+    /* 启动线程，开启调度 */
+    if (SENSOR_thread != RT_NULL)
+        rt_thread_startup(SENSOR_thread);
+
+    /**************************************************************************/
+
+    /* 创建线程3 */
+    Interactive_thread =                               /* 线程控制块指针 */
+        rt_thread_create( "Interactive",               /* 线程名字 */
+                          Interactive_thread_entry,    /* 线程入口函数 */
+                          RT_NULL,           				   /* 线程入口函数参数 */
+                          512,                				 /* 线程栈大小 */
+                          5,                   				 /* 线程的优先级 */
+                          20);                				 /* 线程时间片 */
+
+    /* 启动线程，开启调度 */
+    if (Interactive_thread != RT_NULL)
+        rt_thread_startup(Interactive_thread);
+
+    /**************************************************************************/
+    return 0;
+}
+
+/*
+*************************************************************************
+*                             线程定义
+*************************************************************************
+*/
+
+
+static void ALARM_thread_entry(void* parameter)
+{
+    rt_err_t err = RT_EOK;
+
+    First_function();
+
+    while (1)
+    {
+        rt_sem_take(ALARM_sem,	               /* 获取信号量 */
+                    RT_WAITING_FOREVER);       /* 等待时间：一直等 */
+        if(RT_EOK == err)
+        {
+            ALARM_function();
+        }
+    }
+}
+
+static void SENSOR_thread_entry(void* parameter)
+{
+    rt_err_t err = RT_EOK;
+
+    while(1)
+    {
+        rt_sem_take(SENSOR_sem,	               /* 获取信号量 */
+                    RT_WAITING_FOREVER);       /* 等待时间：一直等 */
+        if(RT_EOK == err)
+        {
+            SENSOR_function();
+        }
+
+    }
+}
+
+static void Interactive_thread_entry(void* parameter)
+{
+    rt_err_t err = RT_EOK;
+
+    while(1)
+    {
+        rt_sem_take(Interactive_sem,	        /* 获取信号量 */
+                    RT_WAITING_FOREVER);      /* 等待时间：一直等 */
+        if(RT_EOK == err)
+        {
+            Interactive_function();
+        }
+
+    }
+}
+
+
+/********************************END OF FILE****************************/

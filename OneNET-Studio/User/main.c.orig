@@ -1,0 +1,210 @@
+/******************************************************************************/
+
+#include "stm32f10x.h"
+#include "usart.h"
+#include "delay.h"
+
+
+#include "math.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "malloc.h"
+
+#include "wdg.h"
+#include "ML302.h"
+
+#include "oled.h"
+#include "bmp.h"
+#include "led_test.h"  
+
+extern char  RxBuffer[200],RxCounter;
+//控制ML302发送数据到MQTT服务器，可以使用mqtt.fx软件进行订阅
+//控制ML302打电话
+//控制ML302发英文短信
+//控制ML302发送TCP数据到服务器，支持收
+
+/**
+  * @brief  主函数
+  * @param  无
+  * @retval 无
+  */
+int main(void)
+{
+    char  *strx_call = NULL;
+    
+		char  *strx_LBS = NULL;
+    u8 flag_LBS = 0;
+    u8 flag_LBS_start = 1;
+    u8 i_LBS = 0;
+	
+    char longitude[12],latitude[12];
+    char *Location_longitude,*Location_latitude;
+
+//    unsigned char senddata[]="LBS";
+
+    uart_init(115200); //串口初始化为115200
+    delay_init();	   //延时函数初始化
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //设置NVIC中断分组2:2位抢占优先级，2位响应优先级
+LED_GPIO_Config();
+
+    OLED_Init();			//初始化OLED
+    OLED_Clear();
+
+
+    uart2_init(115200);//对接ML302
+    delay_ms(500);
+
+    IWDG_Init(7,625);    //8S一次
+
+
+#if 0
+    ML302_Init_MQTT();//对设备初始化
+    ML302_MQTTInit();//初始化MQTT参数
+#endif
+
+
+#if 0
+    ML302_Init_call(); //EC600S初始化
+    delay_ms(500);
+    printf("ATD13244621508;\r\n");//拨打电话,物联网卡不支持电话
+    delay_ms(500);
+    Clear_Buffer();
+#endif
+
+
+#if 0
+    ML302_Init_text();//对设备初始化
+    delay_ms(500);
+    ML302_SendMessage("13244621508","mzh_message txt");//发送英文短信，参数分别是手机号码和英文字符数据
+    delay_ms(500);
+#endif
+
+
+#if 1
+    ML302_Init_LBS();//对设备初始化
+    delay_ms(300);
+    ML302_CreateTCPSokcet();//创建一个SOCKET连接
+
+
+
+#endif
+
+
+    while(1)
+    {
+
+
+
+#if 0
+        ML302_MQTTPUBMessage(15);//发布数据内容
+        delay_ms(500);
+#endif
+
+
+#if 1
+
+        while ( flag_LBS_start == 1 || flag_LBS == 1 )
+        {
+            if ( i_LBS < 10 )
+            {
+                printf("AT+QCELLLOC\r\n");//获取基站定位数据，直接是经纬度数据
+                delay_ms(300);
+                while (strx_LBS == NULL)
+                {
+                    strx_LBS = strstr((const char*)RxBuffer,(const char*)"+QCELLLOC:");//返回经纬度
+//														longitude = strstr((const char*)(strx_LBS),(const char*)"1");	
+//														latitude = longitude + 12;
+                }		
+	      
+								
+//							OLED_ShowString(2,0,(u8 *)RxBuffer,16);	
+								Location_longitude = strstr((const char*)RxBuffer,(const char*)" ");
+								Location_latitude = strstr((const char*)RxBuffer,(const char*)",");									
+//							OLED_ShowString(2,0,(u8 *)Location_and,16);	
+//							OLED_ShowString(2,11,(u8 *)Location_and2,16);	
+								strncpy( (char*)longitude, (const char*)(Location_longitude+1), 11 );
+								strncpy( (char*)latitude, (const char*)(Location_latitude+1), 10 );	
+								
+                Clear_Buffer();
+                flag_LBS = 1;					//说明已经开始LBS
+                flag_LBS_start = 0;		//说明已经开始LBS
+                i_LBS ++ ;
+            }
+            else
+            {
+                flag_LBS = 0;
+            }
+        }
+				
+				OLED_ShowString(2,0,(u8 *)longitude,16);	
+				OLED_ShowString(2,11,(u8 *)latitude,16);
+//        strncpy( (char*)Location, (const char*)Location_and, 32 );
+//        strncpy( (char*)longitude, (const char*)(Location+10), 11 );
+//        strncpy( (char*)latitude, (const char*)(Location+12), 10);	
+//				OLED_ShowString(2,0,(u8 *)longitude,16);
+//					longitude = strstr((const char*)(strx_LBS),(const char*)"Q");	
+//					latitude = longitude + 12;		
+
+//				OLED_Showdecimal(4,2,atof((const char*)longitude),3,6,16);
+//				OLED_Showdecimal(4,6,atof((const char*)latitude),3,6,16); 
+				
+//				Location = strstr((const char*)strx_LBS,(const char*)"O");
+//				Location = Location + 4;
+//				latitude = Location + 12;
+
+
+			
+//        Location_and = strstr((const char*)strx_LBS,(const char*)"O");
+//				Location_and = Location_and + 4;
+//				LED1(LED_ON);
+
+////strx_LBS="+QCELLLOC: 112.9132595,27.9165126"	
+////Location_and="112.9132595,27.9165126"	
+//				
+//        //memset( Location, '\0', sizeof(Location));
+//        strncpy( (char*)Location, (const char*)Location_and, strlen(Location_and));
+
+//        //memset( longitude, '\0', sizeof(longitude));
+//        strncpy( (char*)longitude, (const char*)Location, 11 );
+
+//        //memset(latitude, '\0', sizeof(latitude));
+////        strncpy( (char*)latitude, Location+12, 10);
+//				
+////    char longitude[12],latitude[12];
+////    char *Location_and;
+////    char Location[24];
+				
+//        OLED_ShowString(2,0,(u8 *)latitude,16);
+//        OLED_ShowString(2,11,(u8 *)aa,16);
+//				OLED_Showdecimal(4,6,atof((const char*)latitude),3,6,16); 
+//				OLED_Showdecimal(2,11,atof(test+11),3,6,16); 
+//        OLED_ShowNum(2,6,atoi(longitude),6,16);
+//				OLED_ShowString(2,6,"hum:",16);
+//				Uart1_SendStr((char *)longitude);
+//				Uart1_SendStr((char *)latitude);
+
+
+//        ML302_TCPSend(senddata,strlen((char*)senddata));//发数据,字符串和字符串长度内容
+//        delay_ms(500);
+//        ML302_RECData();//收数据
+#endif
+
+#if 0
+        strx_call=strstr((const char*)RxBuffer,(const char*)"NO CARRIER");//返回无人接听
+        if(strx_call)
+        {
+            Uart1_SendStr("通话已经结束\r\n");
+            Clear_Buffer();
+            //while(1);
+        }
+#endif
+
+        IWDG_Feed();//喂狗
+        //flag_LBS_start = 1;
+
+    }
+}
+
+
+/*********************************************END OF FILE**********************/
